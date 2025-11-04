@@ -4,13 +4,57 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const cors = require("cors");
 const app = express();
+
+const admin = require("firebase-admin");
+
 const port = process.env.port || 3000;
+
+// firebase admin sdk copy kore paste korbo
+
+
+const serviceAccount = require("./smart-deals-firebase-admin-key.json");
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+
 
 // console.log(process.env);
 
 // middleware
 app.use(cors());
 app.use(express.json());
+
+//  verify middleware
+const logger=(req, res, next)=>{
+  console.log("login information");
+  next();
+}
+
+// firebase verify token 
+const verifyFireBaseToken = async (req, res, next)=>{
+  // console.log('in the verify middleware', req.headers.authorization)
+ if(!req.headers.authorization){
+  // do not allow to go
+  return res.status(401).send({message: 'unauthorized access'})
+ }
+ const token = req.headers.authorization.split(' ')[1]
+ if(!token){
+  return res.status(401).send({message: 'unauthorized access'})
+ }
+   
+ try{
+  const userInfo =    await admin.auth().verifyIdToken(token);
+   req.token_email = userInfo.email;
+  console.log("after token validation:",userInfo) 
+  next();
+ }
+ catch{
+     return res.status(401).send({message: 'unauthorized access'})
+ }
+
+  
+}
 
 
 
@@ -52,7 +96,7 @@ async function run() {
       }
     });
 
-    //      GET zPRODUCTS APIs
+    //      GET PRODUCTS APIs
     app.get("/products", async (req, res) => {
       // const projectFields = {title: 1 , price_min: 1 , price_max: 1 , image: 1 }
       // const cursor = productsCollection.find().sort({price_min: 1}).limit(5).project(projectFields);
@@ -124,10 +168,21 @@ async function run() {
     });
 
     //   bids related api
-    app.get("/bids", async (req, res) => {
+
+
+
+    app.get("/bids", logger ,verifyFireBaseToken ,  async (req, res) => {
+        
+      // authorization token header
+
+      // console.log('headers', req.headers)
+       
       const email = req.query.email;
       const query = {};
-      if (email) {
+      if (email) { 
+        if(email !== req.token_email ){
+          return res.status(403).send({message: 'forbidden access'})
+        }
         query.buyer_email = email;
       }
 
@@ -137,6 +192,7 @@ async function run() {
     });
 
     //   bid for this product
+
     app.get("/products/bids/:productId", async (req, res) => {
       const productId = req.params.productId;
       const query = { product: productId };
@@ -146,19 +202,21 @@ async function run() {
     }); 
      
     //  get all  bids
-    app.get('/bids', async (req, res)=>{
-      
-      const query = {};
-       if(query.email){
-        query.buyer_email = email;
-       }
 
-       const cursor = bidsCollection.find(query);
-       const result  = await cursor.toArray();
-       res.send(result)
-    })
+    // app.get('/bids', async (req, res)=>{
+      
+    //   const query = {};
+    //    if(query.email){
+    //     query.buyer_email = email;
+    //    }
+
+    //    const cursor = bidsCollection.find(query);
+    //    const result  = await cursor.toArray();
+    //    res.send(result)
+    // })
 
     //   bids post
+
     app.post("/bids", async (req, res) => {
       const newBid = req.body;
       const result = await bidsCollection.insertOne(newBid);
