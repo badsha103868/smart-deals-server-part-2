@@ -180,6 +180,8 @@ async function run() {
 
     //           POST
     app.post("/products", async (req, res) => {
+      // axios ar maddome token patanor por headers asa kina check
+      console.log('headers in the post', req.headers)
       const newProduct = req.body;
       const result = await productsCollection.insertOne(newProduct);
       res.send(result);
@@ -257,7 +259,7 @@ async function run() {
     
     //   bid for this product
 
-    app.get("/products/bids/:productId", verifyFireBaseToken, async (req, res) => {
+    app.get("/products/bids/:productId", async (req, res) => {
       const productId = req.params.productId;
       const query = { product: productId };
       const cursor = bidsCollection.find(query).sort({ bid_price: -1 });
