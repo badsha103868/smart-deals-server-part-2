@@ -30,7 +30,28 @@ app.use(express.json());
 const logger=(req, res, next)=>{
   console.log("login information");
   next();
-}
+}  
+// // firebase verify token middleware(recap)
+
+// const verifyFireBaseToken = async (req,res, next)=>{
+//   const authorization = req.headers.authorization;
+//   if(!authorization){
+//     res.status(401).send({message: 'unauthorized access'})
+//   }
+//   const  token = authorization.split(' ')[1];
+//   try{
+//    const decoded = await admin.auth().verifyIdToken(token);
+//    console.log('inside token', decoded)
+//    req.token_email = decoded.email;
+//    next()
+//   }
+//   catch(error){
+//       res.status(401).send({message: 'unauthorized access'})
+//   }
+  
+// }
+
+
 
 // firebase verify token middleware
 
@@ -179,7 +200,7 @@ async function run() {
     });
 
     //           POST
-    app.post("/products", async (req, res) => {
+    app.post("/products", verifyFireBaseToken, async (req, res) => {
       // axios ar maddome token patanor por headers asa kina check
       console.log('headers in the post', req.headers)
       const newProduct = req.body;
@@ -216,23 +237,23 @@ async function run() {
     // my bids 
   //   local storage theke token neour function
 
-   app.get('/bids', verifyJWTToken, async (req, res)=>{
-    // console.log('headers', req.headers)
-    const email = req.query.email;
-    const query = {}
-    if(email){
-      query.buyer_email = email;
-    }
+  //  app.get('/bids', verifyJWTToken, async (req, res)=>{
+  //   // console.log('headers', req.headers)
+  //   const email = req.query.email;
+  //   const query = {}
+  //   if(email){
+  //     query.buyer_email = email;
+  //   }
 
-    // verify user have access to see this data
-        if(email !== req.token_email){
-          return res.status(403).send({message: 'forbidden access'})
-        }
+  //   // verify user have access to see this data
+  //       if(email !== req.token_email){
+  //         return res.status(403).send({message: 'forbidden access'})
+  //       }
 
-     const cursor = bidsCollection.find(query);
-     const result = await cursor.toArray()
-     res.send(result);
-   })
+  //    const cursor = bidsCollection.find(query);
+  //    const result = await cursor.toArray()
+  //    res.send(result);
+  //  })
 
     //   bids related apis with firebase token verify 
 
